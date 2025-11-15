@@ -1,2 +1,170 @@
-# Alinsalin-translatorV2
-A research project
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alinsalin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      margin-bottom: 1rem;
+      color: #38bdf8;
+      text-shadow: 0 0 5px #0ea5e9, 0 0 15px #0ea5e9;
+    }
+    .translator-box {
+      background: #1e293b;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+      width: 90%;
+      max-width: 500px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    label { font-weight: 600; }
+    select, input, button {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 8px;
+      border: none;
+      margin: 0.4rem 0;
+      font-size: 1rem;
+      font-family: "Poppins", sans-serif;
+    }
+    select, input { background: #334155; color: #f8fafc; }
+    input::placeholder { color: #94a3b8; }
+    button {
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #0ea5e9;
+      transform: scale(1.03);
+    }
+    .output {
+      margin-top: 1rem;
+      background: #0f172a;
+      padding: 1rem;
+      border-radius: 10px;
+      font-style: italic;
+      color: #a5f3fc;
+      min-height: 2rem;
+      text-align: center;
+      border: 1px solid #38bdf8;
+    }
+    footer { margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>🌀 Alinsalin</h1>
+  <div class="translator-box">
+    <label for="fromGen">From:</label>
+    <select id="fromGen" onchange="updateToOptions()">
+      <option value="genx">Gen X</option>
+      <option value="geny">Gen Y (Millennial)</option>
+      <option value="genz">Gen Z</option>
+      <option value="gena">Gen Alpha</option>
+    </select>
+
+    <label for="toGen">To:</label>
+    <select id="toGen"></select>
+
+    <input type="text" id="inputText" placeholder="Enter a slang or sentence..." />
+    <button onclick="translateSlang()">Translate</button>
+    <div class="output" id="outputText">Your translation will appear here...</div>
+  </div>
+  
+  <div style="margin-top: 15px; text-align: center;">
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfigFYfgO7v6KRWSrxsB5vns-MxkHcnfth106tcMn00yzX9pg/viewform?usp=dialog&usp=embed_facebook" target="_blank"
+       style="display: inline-block; background: #0ea5e9; color: #0f172a; padding: 0.8rem 1.5rem; border-radius: 10px; font-weight: bold; text-decoration: none; transition: 0.2s;">
+      ➕ Add New Slang
+    </a>
+  </div>
+
+  <footer>Created by Group 1 | Gen X → Alpha Translator</footer>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbypiOInqt8jdViC5gqwkxkPQPuSuex4-6je11ChMOWGt-nOgto8N5LACk4N-KnL4KDd/exec";
+    const genNames = {genx:"Gen X", geny:"Gen Y (Millennial)", genz:"Gen Z", gena:"Gen Alpha"};
+    let slangDB = [];
+
+    async function loadSlangDatabase() {
+      try {
+        const response = await fetch(API_URL);
+        slangDB = await response.json();
+        console.log("Loaded data:", slangDB);
+      } catch (err) {
+        console.error("Error loading data:", err);
+      }
+    }
+    loadSlangDatabase();
+
+    function updateToOptions() {
+      const from = document.getElementById("fromGen").value;
+      const toSelect = document.getElementById("toGen");
+      const options = ["genx","geny","genz","gena"];
+      toSelect.innerHTML = "";
+      options.forEach(opt => {
+        if(opt !== from){
+          const optionElem = document.createElement("option");
+          optionElem.value = opt;
+          optionElem.textContent = genNames[opt];
+          toSelect.appendChild(optionElem);
+        }
+      });
+    }
+
+    function translateSlang() {
+      const from = document.getElementById("fromGen").value;
+      const to = document.getElementById("toGen").value;
+      const inputText = document.getElementById("inputText").value.trim().toLowerCase();
+      const output = document.getElementById("outputText");
+
+      if(!inputText){
+        output.textContent = "Please enter a slang or sentence.";
+        return;
+      }
+
+      let resultText = inputText;
+      const sortedDB = slangDB.slice().sort((a,b) => (b[from]?.length||0) - (a[from]?.length||0));
+      let foundAny = false;
+
+      sortedDB.forEach(row => {
+        const phrase = row[from]?.toLowerCase();
+        if(!phrase) return;
+
+        const regex = new RegExp(`\\b${phrase.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&')}\\b`, 'gi');
+
+        if(regex.test(resultText)){
+          foundAny = true;
+          const actualFrom = ["genx","geny","genz","gena"].find(g => row[g]?.toLowerCase() === phrase);
+          if(actualFrom !== from){
+            resultText = resultText.replace(regex, `[${row[from]} belongs to ${genNames[actualFrom]}, not ${genNames[from]}. Please change your FROM.]`);
+          } else {
+            const translation = row[to] || `[${row[from]} has no translation for ${genNames[to]}]`;
+            resultText = resultText.replace(regex, translation);
+          }
+        }
+      });
+
+      output.textContent = foundAny ? resultText : "Word(s)/phrase(s) not found 😅";
+    }
+
+    updateToOptions();
+  </script>
+</body>
+</html>
